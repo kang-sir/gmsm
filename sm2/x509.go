@@ -33,6 +33,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"github.com/kang-sir/gmsm/sm3"
 	"hash"
 	"io"
 	"io/ioutil"
@@ -43,7 +44,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/tjfoc/gmsm/sm3"
 	"golang.org/x/crypto/ripemd160"
 	"golang.org/x/crypto/sha3"
 )
