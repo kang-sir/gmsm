@@ -33,6 +33,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	asn11 "github.com/kang-sir/gmsm/asn1"
 	"github.com/kang-sir/gmsm/sm3"
 	"hash"
 	"io"
@@ -1289,12 +1290,13 @@ func parseCertificate(in *certificate) (*Certificate, error) {
 	out.SerialNumber = in.TBSCertificate.SerialNumber
 
 	var issuer, subject pkix.RDNSequence
-	if rest, err := asn1.Unmarshal(in.TBSCertificate.Subject.FullBytes, &subject); err != nil {
+	//解决Printable有特殊字符_问题
+	if rest, err := asn11.Unmarshal(in.TBSCertificate.Subject.FullBytes, &subject); err != nil {
 		return nil, err
 	} else if len(rest) != 0 {
 		return nil, errors.New("x509: trailing data after X.509 subject")
 	}
-	if rest, err := asn1.Unmarshal(in.TBSCertificate.Issuer.FullBytes, &issuer); err != nil {
+	if rest, err := asn11.Unmarshal(in.TBSCertificate.Issuer.FullBytes, &issuer); err != nil {
 		return nil, err
 	} else if len(rest) != 0 {
 		return nil, errors.New("x509: trailing data after X.509 subject")

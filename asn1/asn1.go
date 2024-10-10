@@ -20,6 +20,7 @@ package asn1
 // everything by any means.
 
 import (
+	"encoding/asn1"
 	"errors"
 	"fmt"
 	"math"
@@ -191,7 +192,7 @@ func (b BitString) RightAlign() []byte {
 }
 
 // parseBitString parses an ASN.1 bit string from the given byte slice and returns it.
-func parseBitString(bytes []byte) (ret BitString, err error) {
+func parseBitString(bytes []byte) (ret asn1.BitString, err error) {
 	if len(bytes) == 0 {
 		err = SyntaxError{"zero length BIT STRING"}
 		return
@@ -251,7 +252,7 @@ func (oi ObjectIdentifier) String() string {
 // parseObjectIdentifier parses an OBJECT IDENTIFIER from the given bytes and
 // returns it. An object identifier is a sequence of variable length integers
 // that are assigned in a hierarchy.
-func parseObjectIdentifier(bytes []byte) (s ObjectIdentifier, err error) {
+func parseObjectIdentifier(bytes []byte) (s asn1.ObjectIdentifier, err error) {
 	if len(bytes) == 0 {
 		err = SyntaxError{"zero length OBJECT IDENTIFIER"}
 		return
@@ -434,6 +435,8 @@ func isPrintable(b byte, asterisk asteriskFlag, ampersand ampersandFlag) bool {
 		'\'' <= b && b <= ')' ||
 		'+' <= b && b <= '/' ||
 		b == ' ' ||
+		//Printable兼容特殊字符_
+		b == '_' ||
 		b == ':' ||
 		b == '=' ||
 		b == '?' ||
@@ -653,13 +656,13 @@ func parseSequenceOf(bytes []byte, sliceType reflect.Type, elemType reflect.Type
 }
 
 var (
-	bitStringType        = reflect.TypeOf(BitString{})
-	objectIdentifierType = reflect.TypeOf(ObjectIdentifier{})
-	enumeratedType       = reflect.TypeOf(Enumerated(0))
-	flagType             = reflect.TypeOf(Flag(false))
+	bitStringType        = reflect.TypeOf(asn1.BitString{})
+	objectIdentifierType = reflect.TypeOf(asn1.ObjectIdentifier{})
+	enumeratedType       = reflect.TypeOf(asn1.Enumerated(0))
+	flagType             = reflect.TypeOf(asn1.Flag(false))
 	timeType             = reflect.TypeOf(time.Time{})
-	rawValueType         = reflect.TypeOf(RawValue{})
-	rawContentsType      = reflect.TypeOf(RawContent(nil))
+	rawValueType         = reflect.TypeOf(asn1.RawValue{})
+	rawContentsType      = reflect.TypeOf(asn1.RawContent(nil))
 	bigIntType           = reflect.TypeOf(new(big.Int))
 )
 
@@ -852,13 +855,13 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 
 	// We deal with the structures defined in this package first.
 	switch v := v.Addr().Interface().(type) {
-	case *RawValue:
-		*v = RawValue{t.class, t.tag, t.isCompound, innerBytes, bytes[initOffset:offset]}
+	case *asn1.RawValue:
+		*v = asn1.RawValue(RawValue{t.class, t.tag, t.isCompound, innerBytes, bytes[initOffset:offset]})
 		return
-	case *ObjectIdentifier:
+	case *asn1.ObjectIdentifier:
 		*v, err = parseObjectIdentifier(innerBytes)
 		return
-	case *BitString:
+	case *asn1.BitString:
 		*v, err = parseBitString(innerBytes)
 		return
 	case *time.Time:
@@ -868,14 +871,14 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		}
 		*v, err = parseGeneralizedTime(innerBytes)
 		return
-	case *Enumerated:
+	case *asn1.Enumerated:
 		parsedInt, err1 := parseInt32(innerBytes)
 		if err1 == nil {
-			*v = Enumerated(parsedInt)
+			*v = asn1.Enumerated(parsedInt)
 		}
 		err = err1
 		return
-	case *Flag:
+	case *asn1.Flag:
 		*v = true
 		return
 	case **big.Int:
@@ -923,7 +926,7 @@ func parseField(v reflect.Value, bytes []byte, initOffset int, params fieldParam
 		if structType.NumField() > 0 &&
 			structType.Field(0).Type == rawContentsType {
 			bytes := bytes[initOffset:offset]
-			val.Field(0).Set(reflect.ValueOf(RawContent(bytes)))
+			val.Field(0).Set(reflect.ValueOf(asn1.RawContent(bytes)))
 		}
 
 		innerOffset := 0
